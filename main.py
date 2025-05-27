@@ -55,15 +55,25 @@ def log_message(caller: str, message: str, extra: str = ""):
         "extra": extra
     }
     file = "messages.json"
-    if not os.path.exists(file):
-        with open(file, "w") as f:
-            json.dump([entry], f)
-    else:
-        with open(file, "r+") as f:
-            data = json.load(f)
-            data.append(entry)
-            f.seek(0)
-            json.dump(data, f)
+
+    try:
+        if not os.path.exists(file):
+            with open(file, "w") as f:
+                json.dump([entry], f)
+        else:
+            with open(file, "r+") as f:
+                try:
+                    data = json.load(f)
+                    if not isinstance(data, list):
+                        data = []
+                except json.JSONDecodeError:
+                    data = []
+                data.append(entry)
+                f.seek(0)
+                json.dump(data, f)
+    except Exception as e:
+        print("❌ Failed to log message:", e)
+
 
 
 async def detect_end_of_call(transcript: str) -> bool:
