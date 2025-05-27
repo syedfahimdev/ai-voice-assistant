@@ -238,6 +238,17 @@ async def handle_media_stream(websocket: WebSocket):
                             "streamSid": stream_sid,
                             "media": {"payload": audio_payload}
                         })
+                        
+                        if response.get('type') == 'response.text.delta':
+                            assistant_reply_text = response['delta'].get('text', '')
+                            if assistant_reply_text:
+                                log_message(CALLER_NUMBER, assistant_reply_text, "AI response")
+                        if response.get('type') == 'input.text.delta':
+                            caller_transcript = response['delta'].get('text', '')
+                            if caller_transcript:
+                                log_message(CALLER_NUMBER, caller_transcript, "Caller said")
+
+
                         # if CALLER_NUMBER and last_user_input and assistant_reply_text:
                         #     save_conversation(CALLER_NUMBER, last_user_input, assistant_reply_text)
                         if response_start_timestamp_twilio is None:
