@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-websockets>=10.0
+websockets>=10.0,<12.0
 openai
 python-dotenv
 requests
