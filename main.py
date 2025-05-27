@@ -5,6 +5,7 @@ import asyncio
 import websockets
 import openai
 import requests
+import backoff
 from requests.auth import HTTPBasicAuth
 from datetime import datetime
 from fastapi import FastAPI, Request, Form, WebSocket
@@ -44,20 +45,24 @@ LOG_EVENT_TYPES = [
 ]
 SHOW_TIMING_MATH = False
 
-def log_message(text):
-    message = {
+def log_message(caller: str, message: str, extra: str = ""):
+    entry = {
         "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "text": text
+        "caller": caller,
+        "message": message,
+        "extra": extra
     }
-    if not os.path.exists("messages.json"):
-        with open("messages.json", "w") as f:
-            json.dump([message], f)
+    file = "messages.json"
+    if not os.path.exists(file):
+        with open(file, "w") as f:
+            json.dump([entry], f)
     else:
-        with open("messages.json", "r+") as f:
+        with open(file, "r+") as f:
             data = json.load(f)
-            data.append(message)
+            data.append(entry)
             f.seek(0)
             json.dump(data, f)
+
 
 async def detect_end_of_call(transcript: str) -> bool:
     system_prompt = (
@@ -95,6 +100,16 @@ def end_call_via_twilio():
     else:
         print("❌ Failed to end call:", response.text)
 
+
+
+@app.get("/health")
+async def health_check():
+    """
+    Returns 200 if the service is healthy.
+    """
+    return {"status": "ok"}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index_page():
     return "<html><body><h1>Twilio Media Stream Server is running!</h1></body></html>"
@@ -104,6 +119,13 @@ async def incoming_call(request: Request):
     global CALL_SID
     form = await request.form()
     CALL_SID = form.get("CallSid")
+    from_number = form.get("From", "Unknown")
+
+    log_message(
+        caller=from_number,
+        message="📞 Incoming call started",
+        extra=f"SID: {CALL_SID}"
+    )
 
     host = request.url.hostname
     response = VoiceResponse()
@@ -178,6 +200,9 @@ async def handle_media_stream(websocket: WebSocket):
                     response = json.loads(openai_message)
                     if response['type'] in LOG_EVENT_TYPES:
                         print(f"Received event: {response['type']}", response)
+
+                    if caller_number and last_user_input:
+                        save_conversation(caller_number, last_user_input, assistant_reply_text)
 
                     if response.get('type') == 'response.audio.delta' and 'delta' in response:
                         audio_payload = base64.b64encode(base64.b64decode(response['delta'])).decode('utf-8')
@@ -265,6 +290,34 @@ async def send_session_update(openai_ws):
     print('Sending session update:', json.dumps(session_update))
     await openai_ws.send(json.dumps(session_update))
     await send_initial_conversation_item(openai_ws)
+
+@backoff.on_exception(backoff.expo, Exception, max_tries=3)
+async def connect_openai_ws():
+    return await websockets.connect(
+        'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview',
+        extra_headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "OpenAI-Beta": "realtime=v1"
+        }
+    )
+
+def save_conversation(caller: str, user_msg: str, ai_reply: str):
+    file = f"memory/{caller}.json"
+    os.makedirs("memory", exist_ok=True)
+    entry = {
+        "time": datetime.now().isoformat(),
+        "user": user_msg,
+        "ai": ai_reply
+    }
+    if not os.path.exists(file):
+        with open(file, "w") as f:
+            json.dump([entry], f)
+    else:
+        with open(file, "r+") as f:
+            history = json.load(f)
+            history.append(entry)
+            f.seek(0)
+            json.dump(history, f)
 
 if __name__ == "__main__":
     import uvicorn
