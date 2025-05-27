@@ -155,12 +155,23 @@ async def incoming_call(request: Request):
 
 @app.get("/messages", response_class=HTMLResponse)
 async def show_messages(request: Request):
-    if not os.path.exists("messages.json"):
+    try:
+        if not os.path.exists("messages.json"):
+            messages = []
+        else:
+            with open("messages.json") as f:
+                try:
+                    messages = json.load(f)
+                    if not isinstance(messages, list):
+                        messages = []
+                except json.JSONDecodeError:
+                    messages = []
+    except Exception as e:
         messages = []
-    else:
-        with open("messages.json") as f:
-            messages = json.load(f)
+        print("❌ Error reading messages.json:", e)
+
     return templates.TemplateResponse("dashboard.html", {"request": request, "messages": messages})
+
 
 @app.websocket("/media-stream")
 async def handle_media_stream(websocket: WebSocket):
