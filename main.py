@@ -15,7 +15,6 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from twilio.twiml.voice_response import VoiceResponse, Connect, Say, Stream
 from starlette.websockets import WebSocketDisconnect
-from main import CALLER_NUMBER
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
