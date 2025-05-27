@@ -1,31 +1,74 @@
 <!-- templates/dashboard.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Call Logs</title>
+  <meta charset="UTF-8">
+  <title>Call Logs Dashboard</title>
   <style>
-    body { font-family: Arial; padding: 2rem; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 0.5rem; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 2rem;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #007bff;
+      margin-bottom: 2rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+    .empty {
+      text-align: center;
+      font-style: italic;
+      color: #888;
+    }
   </style>
 </head>
 <body>
-  <h1>Call Logs</h1>
+  <h1>📞 Call Logs Dashboard</h1>
+
+  {% if messages %}
   <table>
-    <tr>
-      <th>Time</th>
-      <th>Caller</th>
-      <th>Message</th>
-      <th>Extras</th>
-    </tr>
-    {% for msg in messages %}
-    <tr>
-      <td>{{ msg.time }}</td>
-      <td>{{ msg.caller }}</td>
-      <td>{{ msg.message }}</td>
-      <td>{{ msg.extra }}</td>
-    </tr>
-    {% endfor %}
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Caller</th>
+        <th>Message</th>
+        <th>Extras</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for msg in messages %}
+      <tr>
+        <td>{{ msg.time }}</td>
+        <td>{{ msg.caller }}</td>
+        <td>{{ msg.message }}</td>
+        <td>{{ msg.extra }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
   </table>
+  {% else %}
+  <p class="empty">No call logs available yet.</p>
+  {% endif %}
 </body>
 </html>

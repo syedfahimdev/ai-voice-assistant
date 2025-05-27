@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from twilio.twiml.voice_response import VoiceResponse, Connect, Say, Stream
 from starlette.websockets import WebSocketDisconnect
+from main import CALLER_NUMBER
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -34,6 +35,8 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 CALL_SID = None
+CALLER_NUMBER = None
+
 
 with open(SYSTEM_MESSAGE_PATH, 'r') as f:
     SYSTEM_MESSAGE = f.read()
@@ -116,7 +119,10 @@ async def index_page():
 
 @app.post("/incoming-call")
 async def incoming_call(request: Request):
-    global CALL_SID
+    global CALL_SID, CALLER_NUMBER
+    CALL_SID = form.get("CallSid")
+    CALLER_NUMBER = form.get("From", "Unknown")
+
     form = await request.form()
     CALL_SID = form.get("CallSid")
     from_number = form.get("From", "Unknown")
@@ -192,6 +198,7 @@ async def handle_media_stream(websocket: WebSocket):
                 print("Client disconnected.")
                 if openai_ws.open:
                     await openai_ws.close()
+        
 
         async def send_to_twilio():
             nonlocal stream_sid, last_assistant_item, response_start_timestamp_twilio
@@ -201,8 +208,6 @@ async def handle_media_stream(websocket: WebSocket):
                     if response['type'] in LOG_EVENT_TYPES:
                         print(f"Received event: {response['type']}", response)
 
-                    if caller_number and last_user_input:
-                        save_conversation(caller_number, last_user_input, assistant_reply_text)
 
                     if response.get('type') == 'response.audio.delta' and 'delta' in response:
                         audio_payload = base64.b64encode(base64.b64decode(response['delta'])).decode('utf-8')
@@ -211,6 +216,8 @@ async def handle_media_stream(websocket: WebSocket):
                             "streamSid": stream_sid,
                             "media": {"payload": audio_payload}
                         })
+                        if CALLER_NUMBER and last_user_input and assistant_reply_text:
+                            save_conversation(CALLER_NUMBER, last_user_input, assistant_reply_text)
                         if response_start_timestamp_twilio is None:
                             response_start_timestamp_twilio = latest_media_timestamp
                         if response.get('item_id'):
