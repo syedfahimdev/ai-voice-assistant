@@ -119,15 +119,16 @@ async def index_page():
 @app.post("/incoming-call")
 async def incoming_call(request: Request):
     global CALL_SID, CALLER_NUMBER
+
+    # ✅ First, get form values from the request
+    form = await request.form()
+
+    # ✅ Now you can access its values safely
     CALL_SID = form.get("CallSid")
     CALLER_NUMBER = form.get("From", "Unknown")
 
-    form = await request.form()
-    CALL_SID = form.get("CallSid")
-    from_number = form.get("From", "Unknown")
-
     log_message(
-        caller=from_number,
+        caller=CALLER_NUMBER,
         message="📞 Incoming call started",
         extra=f"SID: {CALL_SID}"
     )
@@ -140,6 +141,7 @@ async def incoming_call(request: Request):
     response.say("Hello! I am Fahim's assistant. Please tell me your message.")
     response.pause(length=60)
     return HTMLResponse(str(response), media_type="application/xml")
+
 
 @app.get("/messages", response_class=HTMLResponse)
 async def show_messages(request: Request):
