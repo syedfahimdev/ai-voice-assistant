@@ -217,8 +217,8 @@ async def handle_media_stream(websocket: WebSocket):
                             "streamSid": stream_sid,
                             "media": {"payload": audio_payload}
                         })
-                        if CALLER_NUMBER and last_user_input and assistant_reply_text:
-                            save_conversation(CALLER_NUMBER, last_user_input, assistant_reply_text)
+                        # if CALLER_NUMBER and last_user_input and assistant_reply_text:
+                        #     save_conversation(CALLER_NUMBER, last_user_input, assistant_reply_text)
                         if response_start_timestamp_twilio is None:
                             response_start_timestamp_twilio = latest_media_timestamp
                         if response.get('item_id'):
@@ -309,23 +309,23 @@ async def connect_openai_ws():
         }
     )
 
-def save_conversation(caller: str, user_msg: str, ai_reply: str):
-    file = f"memory/{caller}.json"
-    os.makedirs("memory", exist_ok=True)
-    entry = {
-        "time": datetime.now().isoformat(),
-        "user": user_msg,
-        "ai": ai_reply
-    }
-    if not os.path.exists(file):
-        with open(file, "w") as f:
-            json.dump([entry], f)
-    else:
-        with open(file, "r+") as f:
-            history = json.load(f)
-            history.append(entry)
-            f.seek(0)
-            json.dump(history, f)
+# def save_conversation(caller: str, user_msg: str, ai_reply: str):
+#     file = f"memory/{caller}.json"
+#     os.makedirs("memory", exist_ok=True)
+#     entry = {
+#         "time": datetime.now().isoformat(),
+#         "user": user_msg,
+#         "ai": ai_reply
+#     }
+#     if not os.path.exists(file):
+#         with open(file, "w") as f:
+#             json.dump([entry], f)
+#     else:
+#         with open(file, "r+") as f:
+#             history = json.load(f)
+#             history.append(entry)
+#             f.seek(0)
+#             json.dump(history, f)
 
 if __name__ == "__main__":
     import uvicorn
